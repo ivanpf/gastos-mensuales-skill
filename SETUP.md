@@ -98,5 +98,9 @@ que liste las pestañas del Sheet o que suba un movimiento de prueba.
   computadora nueva (por un medio seguro, no por email ni chat público) en
   vez de crear una cuenta de servicio nueva cada vez.
 - El paso 6 también es único por Sheet — si usás el mismo Google Sheet
-  desde varias computadoras, solo necesitás el mismo `.sheet_id` en todas
+  desde varias computadoras, copiá el mismo archivo `scripts/.sheet_id` a
+  cada una (igual que `service_account.json`, por un medio seguro — no es
+  una contraseña, pero identifica tu planilla de gastos personales, así
+  que tampoco conviene subirlo a un repo público; por eso está en
+  `.gitignore`)
   (ese archivo sí se puede versionar en Git, no es secreto).
