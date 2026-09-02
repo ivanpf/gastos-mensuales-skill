@@ -118,10 +118,19 @@ INGRESOS_TITLE_FORMAT = CellFormat(
 CATEGORIA_WRAP_FORMAT = CellFormat(
     wrapStrategy="WRAP",
 )
-TOTAL_AJUSTADO_FORMAT = CellFormat(
-    backgroundColor=Color(0.80, 0.86, 0.98),
-    textFormat=TextFormat(bold=True, italic=True),
+EXCLUIDA_FORMAT = CellFormat(
+    textFormat=TextFormat(italic=True, foregroundColor=Color(0.55, 0.55, 0.55)),
 )
+
+# Movimientos que representan plata moviéndose entre cuentas propias del
+# usuario: se muestran en el detalle (para que el desglose sea completo)
+# pero no suman al TOTAL de Egresos/Ingresos, porque no son un gasto ni un
+# ingreso real — es la misma plata contada dos veces si se sumara.
+EXCLUIDAS_DEL_TOTAL = {
+    ("Transferencias enviadas", "Propias"),
+    ("Ingresos", "Transferencia recibida propia"),
+}
+
 _BLACK_BORDER = Border("SOLID", Color(0, 0, 0))
 BORDER_FORMAT = CellFormat(
     borders=Borders(top=_BLACK_BORDER, bottom=_BLACK_BORDER, left=_BLACK_BORDER, right=_BLACK_BORDER),
@@ -242,34 +251,33 @@ def main():
 
     resumen_rows = [["Egresos", "", ""], RESUMEN_HEADER]
     subtotal_row_idxs = []  # índices dentro de resumen_rows (0-based)
+    excluida_row_idxs = []  # filas de transferencias/ingresos propios, no cuentan para el total
     total_general = 0.0
     for cat in categorias:
         if cat == "Ingresos":
             continue
         subtotal_cat = 0.0
         for sub in categorias_dict[cat]:
+            excluida = (cat, sub) in EXCLUIDAS_DEL_TOTAL
             debito = debitos_por_cat_sub.get((cat, sub), 0)
             credito = creditos_por_cat_sub.get((cat, sub), 0)
+            sub_label = f"{sub} (no cuenta para el total)" if excluida else sub
             if debito:
-                resumen_rows.append([cat, sub, round(debito, 2)])
+                resumen_rows.append([cat, sub_label, round(debito, 2)])
+                if excluida:
+                    excluida_row_idxs.append(len(resumen_rows) - 1)
             if credito:
-                resumen_rows.append([cat, sub, round(-credito, 2)])
-            subtotal_cat += debito - credito
+                resumen_rows.append([cat, sub_label, round(-credito, 2)])
+                if excluida:
+                    excluida_row_idxs.append(len(resumen_rows) - 1)
+            if not excluida:
+                subtotal_cat += debito - credito
         if subtotal_cat:
             resumen_rows.append(["Subtotal", "", round(subtotal_cat, 2)])
             subtotal_row_idxs.append(len(resumen_rows) - 1)
             total_general += subtotal_cat
     resumen_rows.append(["TOTAL", "", round(total_general, 2)])
     total_row_idx = len(resumen_rows) - 1
-
-    transferencias_propias = gastos_por_cat_sub.get(("Transferencias enviadas", "Propias"), 0)
-    if transferencias_propias:
-        resumen_rows.append([
-            "Total sin transferencias propias", "", round(total_general - transferencias_propias, 2),
-        ])
-        total_sin_propias_row_idx = len(resumen_rows) - 1
-    else:
-        total_sin_propias_row_idx = None
 
     resumen_start = mov_end + gap
     resumen_end = resumen_start + len(resumen_rows) - 1
@@ -281,23 +289,20 @@ def main():
             ingresos_por_sub[m["subcategoria"]] += m["monto"]
 
     ingresos_rows = [["Ingresos", "", ""], RESUMEN_HEADER]
+    ingresos_excluida_row_idxs = []
     total_ingresos = 0.0
     for sub in categorias_dict.get("Ingresos", []):
         total = ingresos_por_sub.get(sub, 0)
         if total:
-            ingresos_rows.append(["Ingresos", sub, round(total, 2)])
-            total_ingresos += total
+            excluida = ("Ingresos", sub) in EXCLUIDAS_DEL_TOTAL
+            sub_label = f"{sub} (no cuenta para el total)" if excluida else sub
+            ingresos_rows.append(["Ingresos", sub_label, round(total, 2)])
+            if excluida:
+                ingresos_excluida_row_idxs.append(len(ingresos_rows) - 1)
+            else:
+                total_ingresos += total
     ingresos_rows.append(["TOTAL", "", round(total_ingresos, 2)])
     ingresos_total_row_idx = len(ingresos_rows) - 1
-
-    ingresos_propios = ingresos_por_sub.get("Transferencia recibida propia", 0)
-    if ingresos_propios:
-        ingresos_rows.append([
-            "Total sin transferencias propias", "", round(total_ingresos - ingresos_propios, 2),
-        ])
-        ingresos_total_sin_propias_row_idx = len(ingresos_rows) - 1
-    else:
-        ingresos_total_sin_propias_row_idx = None
 
     ingresos_start = resumen_end + gap
     ingresos_end = ingresos_start + len(ingresos_rows) - 1
@@ -364,9 +369,9 @@ def main():
         format_cell_range(ws, f"A{row}:C{row}", SUBTOTAL_FORMAT)
     total_row = resumen_start + total_row_idx
     format_cell_range(ws, f"A{total_row}:C{total_row}", TOTAL_FORMAT)
-    if total_sin_propias_row_idx is not None:
-        total_sin_propias_row = resumen_start + total_sin_propias_row_idx
-        format_cell_range(ws, f"A{total_sin_propias_row}:C{total_sin_propias_row}", TOTAL_AJUSTADO_FORMAT)
+    for idx in excluida_row_idxs:
+        row = resumen_start + idx
+        format_cell_range(ws, f"A{row}:C{row}", EXCLUIDA_FORMAT)
 
     # Bloque Ingresos: título fusionado + header + total
     ingresos_header_row = ingresos_start + 1
@@ -375,9 +380,9 @@ def main():
     format_cell_range(ws, f"A{ingresos_header_row}:C{ingresos_header_row}", HEADER_FORMAT)
     ingresos_total_row = ingresos_start + ingresos_total_row_idx
     format_cell_range(ws, f"A{ingresos_total_row}:C{ingresos_total_row}", TOTAL_FORMAT)
-    if ingresos_total_sin_propias_row_idx is not None:
-        ingresos_total_sin_propias_row = ingresos_start + ingresos_total_sin_propias_row_idx
-        format_cell_range(ws, f"A{ingresos_total_sin_propias_row}:C{ingresos_total_sin_propias_row}", TOTAL_AJUSTADO_FORMAT)
+    for idx in ingresos_excluida_row_idxs:
+        row = ingresos_start + idx
+        format_cell_range(ws, f"A{row}:C{row}", EXCLUIDA_FORMAT)
 
     # Columna Categoría (A) de ambos bloques de resumen: mismo wrap que Concepto
     format_cell_range(ws, f"A{resumen_start}:A{ingresos_end}", CATEGORIA_WRAP_FORMAT)
