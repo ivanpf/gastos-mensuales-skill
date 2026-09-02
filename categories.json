@@ -22,7 +22,7 @@
     "Peluquería": ["-"],
     "Inversiones": ["-"],
     "Tatuajes": ["-"],
-    "Ingresos": ["Sueldo", "Transferencia recibida", "Rendimientos", "Otros"],
+    "Ingresos": ["Sueldo", "Transferencia recibida propia", "Transferencia recibida de otros", "Rendimientos", "Otros"],
     "Otros": ["-"]
   }
 }

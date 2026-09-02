@@ -290,6 +290,15 @@ def main():
     ingresos_rows.append(["TOTAL", "", round(total_ingresos, 2)])
     ingresos_total_row_idx = len(ingresos_rows) - 1
 
+    ingresos_propios = ingresos_por_sub.get("Transferencia recibida propia", 0)
+    if ingresos_propios:
+        ingresos_rows.append([
+            "Total sin transferencias propias", "", round(total_ingresos - ingresos_propios, 2),
+        ])
+        ingresos_total_sin_propias_row_idx = len(ingresos_rows) - 1
+    else:
+        ingresos_total_sin_propias_row_idx = None
+
     ingresos_start = resumen_end + gap
     ingresos_end = ingresos_start + len(ingresos_rows) - 1
 
@@ -366,6 +375,9 @@ def main():
     format_cell_range(ws, f"A{ingresos_header_row}:C{ingresos_header_row}", HEADER_FORMAT)
     ingresos_total_row = ingresos_start + ingresos_total_row_idx
     format_cell_range(ws, f"A{ingresos_total_row}:C{ingresos_total_row}", TOTAL_FORMAT)
+    if ingresos_total_sin_propias_row_idx is not None:
+        ingresos_total_sin_propias_row = ingresos_start + ingresos_total_sin_propias_row_idx
+        format_cell_range(ws, f"A{ingresos_total_sin_propias_row}:C{ingresos_total_sin_propias_row}", TOTAL_AJUSTADO_FORMAT)
 
     # Columna Categoría (A) de ambos bloques de resumen: mismo wrap que Concepto
     format_cell_range(ws, f"A{resumen_start}:A{ingresos_end}", CATEGORIA_WRAP_FORMAT)
