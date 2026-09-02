@@ -1,0 +1,28 @@
+{
+  "_comentario": "Categorías y subcategorías válidas para las columnas 'Categoría' y 'Subcategoría' del Sheet. Podés agregar/quitar/renombrar libremente. El Sheet usa estas listas como dropdown (data validation), así que si borrás una que ya está usada en filas viejas, esas filas van a quedar con un valor no válido hasta que las reasignes.",
+  "categorias": {
+    "Supermercado": ["Comida", "Verdulería", "Otros"],
+    "Comida": ["Afuera", "Trabajo", "Delivery"],
+    "Alquiler": ["-"],
+    "Servicios": ["UTE", "OSE", "Antel", "Gas", "Otros"],
+    "Tarjeta de crédito": ["-"],
+    "Suscripciones": ["-"],
+    "Compras online": ["-"],
+    "Transferencias enviadas": ["Propias","A otros"],
+    "Comisiones bancarias": ["-"],
+    "Salud": ["Consultas","Medicamentos","Dentista","General"],
+    "Transporte": ["-"],
+    "Entretenimiento": ["-"],
+    "Ropa": ["-"],
+    "Educación": ["-"],
+    "Regalos": ["-"],
+    "Entrenamiento": ["Gimnasio", "Proteína", "Creatina"],
+    "Auto": ["Nafta", "Mecánico", "Telepeaje", "Otros"],
+    "Fútbol 5": ["-"],
+    "Peluquería": ["-"],
+    "Inversiones": ["-"],
+    "Tatuajes": ["-"],
+    "Ingresos": ["Sueldo", "Transferencia recibida", "Rendimientos", "Otros"],
+    "Otros": ["-"]
+  }
+}
