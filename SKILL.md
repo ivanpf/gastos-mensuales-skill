@@ -32,28 +32,35 @@ como adjuntos cada vez que corresponda cargar un mes nuevo.
 
 Por cada archivo/captura:
 
-1. **Extraer los movimientos.**
-   - Santander (CSV): `python scripts/parse_santander.py <archivo.csv> --out <tmp>/movs_santander.json`
-     (ya devuelve JSON con `banco: "Santander"` incluido).
-   - Otros orígenes (OCA en PDF, Prex en Excel, Mercado Pago en captura,
-     cualquier otro banco nuevo): no hay parser dedicado — leer el archivo
-     directamente (Read para PDF/imagen, o un script rápido con `openpyxl`
-     para Excel) y armar a mano un JSON con la misma forma que
-     `parse_santander.py`, agregando siempre `"banco": "<Nombre>"` a cada
-     registro. Ver la forma exacta más abajo.
+1. **Extraer los movimientos**, uno por banco/origen, a un CSV con el
+   formato de `scripts/movs_csv.py` (columnas: `banco, fecha, referencia,
+   concepto, tipo, monto, saldo, categoria, subcategoria` — las dos
+   últimas se completan en el paso de categorización).
+   - Si existe un parser dedicado para ese banco en `scripts/parsers/`
+     (por ahora solo `santander.py`), usarlo:
+     `python scripts/parsers/santander.py <archivo.csv> --out <tmp>/movs_santander.csv`.
+   - Si no hay parser dedicado para ese banco (PDF, Excel, captura de
+     pantalla, o cualquier banco nuevo): no hace falta escribir uno — leer
+     el archivo/imagen directamente (Read para PDF/captura, un script
+     rápido con `openpyxl` para Excel) y armar a mano un CSV con las mismas
+     columnas, agregando siempre el nombre del banco en la columna
+     `banco`. Si en algún momento un origen empieza a repetirse seguido y
+     vale la pena automatizarlo, se puede sumar un parser nuevo en
+     `scripts/parsers/` siguiendo el mismo patrón que `santander.py`.
    - Si el archivo trae muchos movimientos repetidos del mismo tipo (ej.
      "Rendimiento" diario de una cuenta remunerada como Prex), preguntarle
      al usuario si los quiere **unificados en una sola fila** (suma total,
      un solo movimiento) antes de categorizar — no asumirlo.
 
 2. **Categorizar.** Leer `categories.json` (objeto `{categoria:
-   [subcategorias]}`) y asignarle a cada movimiento una categoría y
-   subcategoría de esa lista, con criterio, basándose en el `concepto`:
-   - Reconocer patrones típicos de Santander Uruguay: "COMPRA CON TARJETA
-     DEBITO <comercio>" -> por el comercio; "PAGO DE SERVICIO POR BANRED
-     ... <servicio>" -> "Servicios"; "SERVICIO PAC DEBITO ...ZURICH
-     SANTANDER" u otro pago de tarjeta de crédito -> "Tarjeta de crédito";
-     "COMISION COMPRA INTERNACIONAL" -> "Comisiones bancarias".
+   [subcategorias]}`) y completar las columnas `categoria`/`subcategoria`
+   de cada fila del CSV con un valor de esa lista, con criterio, basándose
+   en el `concepto`:
+   - Cada banco tiene sus propios patrones de texto en el concepto — si
+     existe una nota en `references/` para ese banco (ej.
+     `references/patrones_santander.md`), usarla como ayuda. Si no existe,
+     inferir del texto del concepto y, si hace falta, preguntarle al
+     usuario.
    - **Transferencias**: distinguir "Propias" (a una cuenta del mismo
      usuario, mismo nombre en el concepto) de "A otros" (a otra persona).
      No asumir — si no es obvio de quién es la cuenta destino, preguntar.
@@ -73,19 +80,19 @@ Por cada archivo/captura:
      casos se repiten mes a mes así que vale la pena confirmarlos.
    - Si hace falta una categoría o subcategoría que no existe todavía en
      `categories.json`, se puede agregar (ver más abajo), pero no inventar
-     un valor que no esté en la lista al momento de escribir el JSON — la
+     un valor que no esté en la lista al momento de escribir el CSV — la
      columna es un dropdown fijo en el Sheet.
-   - Guardar cada banco en su propio archivo JSON categorizado (ej.
-     `<tmp>/movs_santander.json`, `<tmp>/movs_oca.json`, etc.) — el script
+   - Guardar cada banco en su propio archivo CSV categorizado (ej.
+     `<tmp>/movs_santander.csv`, `<tmp>/movs_oca.csv`, etc.) — el script
      de subida acepta varios a la vez.
    - Antes de subir, mostrarle al usuario un resumen rápido (movimientos
      por categoría/subcategoría) para que pueda corregir algo si quedó mal
      categorizado.
 
-3. **Subir a Sheets**, pasando **todos los JSON del mes en un solo comando**:
+3. **Subir a Sheets**, pasando **todos los CSV del mes en un solo comando**:
    ```
    python scripts/write_to_sheets.py \
-       <tmp>/movs_santander.json <tmp>/movs_oca.json <tmp>/movs_prex.json <tmp>/movs_mercadopago.json \
+       <tmp>/movs_santander.csv <tmp>/movs_oca.csv <tmp>/movs_prex.csv <tmp>/movs_mercadopago.csv \
        --categories categories.json \
        --sheet-id <ID> \
        --credentials scripts/service_account.json
@@ -103,36 +110,40 @@ Por cada archivo/captura:
      `write_to_sheets.py`, se le puede agregar uno nuevo ahí si el usuario
      lo pide).
    - El script valida que todas las categorías/subcategorías estén en la
-     lista antes de escribir nada — si falla, corregir el JSON y
+     lista antes de escribir nada — si falla, corregir el CSV y
      reintentar, no editar el Sheet a mano para parchear.
    - Usar `--worksheet-name` solo si hay que forzar un nombre de pestaña
      distinto al mes detectado automáticamente.
 
 4. Devolver el link del Sheet que imprime el script al final.
 
-## Forma del JSON de movimientos (para orígenes sin parser dedicado)
+## Forma del CSV de movimientos (para orígenes sin parser dedicado)
 
-Cada movimiento es un objeto con estos campos (ver `parse_santander.py`
-como referencia de la forma "cruda", antes de categorizar):
+Columnas (ver `scripts/movs_csv.py`, es la misma para todos los orígenes):
 
-```json
-{
-  "fecha": "2026-08-31",       // ISO yyyy-mm-dd
-  "referencia": "",             // número de operación si lo hay, si no ""
-  "concepto": "texto del movimiento",
-  "tipo": "debito" | "credito",
-  "monto": 147.54,               // siempre positivo, el signo lo da "tipo"
-  "saldo": null,                 // si no está disponible, null
-  "banco": "OCA",                // nombre del banco/billetera, se muestra en el Sheet
-  "categoria": "...",            // agregado en el paso de categorización
-  "subcategoria": "..."          // agregado en el paso de categorización
-}
 ```
+banco,fecha,referencia,concepto,tipo,monto,saldo,categoria,subcategoria
+MiBanco,2026-01-31,123456789012,"COMPRA COMERCIO EJEMPLO",debito,1500.00,25000.00,Compras online,-
+```
+
+- `fecha`: ISO `yyyy-mm-dd`.
+- `referencia`: número de operación si lo hay, si no vacío.
+- `tipo`: `debito` o `credito`.
+- `monto`: siempre positivo, el signo lo da `tipo`.
+- `saldo`: opcional, vacío si no está disponible.
+- `banco`: nombre del banco/billetera, se muestra en el Sheet.
+- `categoria`/`subcategoria`: se completan en el paso de categorización,
+  vacías está bien en el CSV "crudo" recién extraído.
+
+Se puede armar con `scripts/movs_csv.py::write_movs(records, path)` desde
+un script rápido, o escribiendo el CSV directamente si son pocas filas.
 
 ## Notas importantes
 - El CSV de Santander viene en **encoding ISO-8859-1 (latin-1)**, no UTF-8,
-  y con metadata antes del header real de la tabla. `parse_santander.py` ya
-  maneja esto — no reimplementar el parseo a mano.
+  y con metadata antes del header real de la tabla. `scripts/parsers/santander.py`
+  ya maneja esto — no reimplementar el parseo a mano. Ver también
+  `references/patrones_santander.md` para los patrones de concepto típicos
+  de ese banco.
 - Los movimientos de tipo `credito` no son necesariamente "ingresos" en
   sentido estricto (pueden ser reintegros/descuentos). No asumir
   automáticamente — ver criterio de categorización arriba.

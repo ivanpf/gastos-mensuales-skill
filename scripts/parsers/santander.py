@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Parsea un CSV de movimientos de Santander (export "Movimientos" de banca
-digital) a una lista de registros normalizados en JSON.
+digital) a un CSV normalizado, con las mismas columnas que usan todos los
+parsers de este proyecto (ver scripts/movs_csv.py).
 
 El formato de estos exports NO es un CSV plano: tiene ~6 líneas de metadata
 de cuenta al principio, líneas en blanco, y recién después el header real
@@ -9,26 +10,19 @@ de la tabla (columna "Fecha"). Además vienen en encoding ISO-8859-1
 (latin-1), no UTF-8.
 
 Uso:
-    python parse_santander.py <archivo.csv> [--out movimientos.json]
-
-Salida (JSON, uno por movimiento):
-    {
-      "fecha": "2026-08-31",
-      "referencia": "123456789012",
-      "concepto": "COMPRA CON TARJETA DEBITO MI ANTEL, ...",
-      "tipo": "debito" | "credito",
-      "monto": 147.54,          # siempre positivo; el signo lo da "tipo"
-      "saldo": 25000.00
-    }
+    python scripts/parsers/santander.py <archivo.csv> --out movimientos.csv
 """
 import argparse
 import csv
-import json
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from movs_csv import FIELDS, write_movs
+
 ENCODING = "latin-1"
 HEADER_MARKER = "Fecha"  # primera columna de la fila de header real
+BANCO = "Santander"
 
 
 def find_header_row(lines: list[str]) -> int:
@@ -70,9 +64,9 @@ def parse_santander_csv(path: str) -> list[dict]:
             fieldmap[f] = "concepto"
         elif key.startswith("descripci"):
             fieldmap[f] = "descripcion"
-        elif key.startswith("d\u00e9bito") or key.startswith("d�bito") or key.startswith("debito"):
+        elif key.startswith("débito") or key.startswith("d�bito") or key.startswith("debito"):
             fieldmap[f] = "debito"
-        elif key.startswith("cr\u00e9dito") or key.startswith("cr�dito") or key.startswith("credito"):
+        elif key.startswith("crédito") or key.startswith("cr�dito") or key.startswith("credito"):
             fieldmap[f] = "credito"
         elif key.startswith("saldo"):
             fieldmap[f] = "saldo"
@@ -106,18 +100,20 @@ def parse_santander_csv(path: str) -> list[dict]:
         concepto = get("concepto")
         saldo_raw = get("saldo")
         try:
-            saldo = float(saldo_raw) if saldo_raw else None
+            saldo = float(saldo_raw) if saldo_raw else ""
         except ValueError:
-            saldo = None
+            saldo = ""
 
         records.append({
+            "banco": BANCO,
             "fecha": fecha_iso,
             "referencia": get("referencia"),
             "concepto": concepto,
             "tipo": tipo,
             "monto": monto,
             "saldo": saldo,
-            "banco": "Santander",
+            "categoria": "",
+            "subcategoria": "",
         })
 
     return records
@@ -126,17 +122,18 @@ def parse_santander_csv(path: str) -> list[dict]:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("csv_path")
-    ap.add_argument("--out", default=None, help="Archivo de salida JSON (default: stdout)")
+    ap.add_argument("--out", default=None, help="Archivo de salida CSV (default: stdout)")
     args = ap.parse_args()
 
     records = parse_santander_csv(args.csv_path)
 
-    out_data = json.dumps(records, ensure_ascii=False, indent=2)
     if args.out:
-        Path(args.out).write_text(out_data, encoding="utf-8")
+        write_movs(records, args.out)
         print(f"{len(records)} movimientos -> {args.out}", file=sys.stderr)
     else:
-        print(out_data)
+        w = csv.DictWriter(sys.stdout, fieldnames=FIELDS)
+        w.writeheader()
+        w.writerows(records)
 
 
 if __name__ == "__main__":

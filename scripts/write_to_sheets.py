@@ -8,32 +8,29 @@ pestaña por mes (ej. "Agosto"):
     general, con formato para distinguirlos a simple vista.
 
 Requiere:
-  pip install gspread google-auth
+  pip install -r requirements.txt
 
-Auth: service account. Pasos (una sola vez):
-  1. https://console.cloud.google.com/ -> crear proyecto (o usar uno existente)
-  2. Habilitar "Google Sheets API" y "Google Drive API"
-  3. IAM & Admin -> Service Accounts -> Create Service Account
-  4. Esa cuenta -> Keys -> Add Key -> JSON -> descargar el archivo
-  5. Guardar el JSON como service_account.json (NO subir a git)
-  6. Compartir el Google Sheet de destino con el email del service account
-     (algo como nombre@proyecto.iam.gserviceaccount.com), dándole permiso
-     de Editor
+Setup de las credenciales: ver SETUP.md en la raíz del proyecto.
 
 Soporta combinar movimientos de más de un banco/tarjeta en la misma pestaña:
-pasá varios JSON (uno por banco/cuenta) y la tabla de Movimientos los agrupa
-con una fila separadora por banco (usa el campo "banco" de cada
-movimiento, default "Santander" si no está presente).
+pasá varios CSV (uno por banco/cuenta, formato de scripts/movs_csv.py) y la
+tabla de Movimientos los agrupa con una fila separadora por banco (usa la
+columna "banco" de cada movimiento).
 
 Uso:
-    python write_to_sheets.py <movimientos_categorizados.json> [otro.json ...] \\
+    python write_to_sheets.py <movimientos_categorizados.csv> [otro.csv ...] \\
         --categories ../categories.json \\
         --sheet-id <ID_DEL_GOOGLE_SHEET> \\
         --credentials service_account.json
 """
 import argparse
 import json
+import sys
 from collections import defaultdict
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from movs_csv import read_movs
 
 import gspread
 from google.oauth2.service_account import Credentials
@@ -148,8 +145,9 @@ def mes_de(fecha_iso):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("movimientos_json", nargs="+",
-                     help="Uno o más JSON de movimientos ya categorizados (con campos 'categoria' y 'subcategoria'). "
+    ap.add_argument("movimientos_csv", nargs="+",
+                     help="Uno o más CSV de movimientos ya categorizados (formato de scripts/movs_csv.py, "
+                          "con columnas 'categoria' y 'subcategoria' completas). "
                           "Pasar varios para combinar distintos bancos/tarjetas en la misma pestaña.")
     ap.add_argument("--categories", required=True, help="Path a categories.json")
     ap.add_argument("--sheet-id", required=True, help="ID del Google Sheet (de la URL)")
@@ -159,12 +157,10 @@ def main():
     args = ap.parse_args()
 
     movimientos = []
-    for path in args.movimientos_json:
-        for m in load_json(path):
-            m.setdefault("banco", "Santander")
-            movimientos.append(m)
+    for path in args.movimientos_csv:
+        movimientos.extend(read_movs(path))
     if not movimientos:
-        raise ValueError("El JSON de movimientos está vacío.")
+        raise ValueError("El CSV de movimientos está vacío.")
 
     cat_data = load_json(args.categories)
     categorias_dict = cat_data["categorias"]
