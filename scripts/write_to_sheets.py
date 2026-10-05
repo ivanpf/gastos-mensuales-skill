@@ -118,6 +118,19 @@ INGRESOS_TITLE_FORMAT = CellFormat(
 CATEGORIA_WRAP_FORMAT = CellFormat(
     wrapStrategy="WRAP",
 )
+SALDO_TITLE_FORMAT = CellFormat(
+    backgroundColor=Color(0.80, 0.86, 0.96),
+    textFormat=TextFormat(bold=True),
+    horizontalAlignment="CENTER",
+)
+SALDO_POSITIVO_FORMAT = CellFormat(  # saldo a favor
+    backgroundColor=Color(0.71, 0.88, 0.71),
+    textFormat=TextFormat(bold=True),
+)
+SALDO_NEGATIVO_FORMAT = CellFormat(  # saldo en contra
+    backgroundColor=Color(0.96, 0.70, 0.70),
+    textFormat=TextFormat(bold=True),
+)
 EXCLUIDA_FORMAT = CellFormat(
     textFormat=TextFormat(italic=True, foregroundColor=Color(0.55, 0.55, 0.55)),
 )
@@ -307,7 +320,18 @@ def main():
     ingresos_start = resumen_end + gap
     ingresos_end = ingresos_start + len(ingresos_rows) - 1
 
-    last_row = ingresos_end
+    # --- Saldo del mes: Ingresos - Egresos (ambos ya sin las transferencias propias) ---
+    saldo_mes = round(total_ingresos - total_general, 2)
+    saldo_rows = [
+        ["Saldo del mes", "", ""],
+        ["Ingresos", "", round(total_ingresos, 2)],
+        ["Egresos", "", round(total_general, 2)],
+        ["SALDO", "", saldo_mes],
+    ]
+    saldo_start = ingresos_end + gap
+    saldo_end = saldo_start + len(saldo_rows) - 1
+
+    last_row = saldo_end
 
     # Recrear la pestaña desde cero si ya existe: ws.clear() solo borra
     # valores, no formato, y eso dejaba colores de corridas anteriores
@@ -319,7 +343,10 @@ def main():
         old_ws = sh.worksheet(ws_name)
     except gspread.WorksheetNotFound:
         pass
-    ws = sh.add_worksheet(title=f"{ws_name} (nuevo)" if old_ws else ws_name, rows=last_row, cols=n_cols)
+    ws = sh.add_worksheet(
+        title=f"{ws_name} (nuevo)" if old_ws else ws_name, rows=last_row, cols=n_cols,
+        index=old_ws.index if old_ws else None,  # la pestaña recreada conserva su lugar
+    )
     if old_ws:
         sh.del_worksheet(old_ws)
         ws.update_title(ws_name)
@@ -327,6 +354,7 @@ def main():
     ws.update(values=mov_rows, range_name=f"A{mov_start}")
     ws.update(values=resumen_rows, range_name=f"A{resumen_start}")
     ws.update(values=ingresos_rows, range_name=f"A{ingresos_start}")
+    ws.update(values=saldo_rows, range_name=f"A{saldo_start}")
 
     set_column_widths(ws, COLUMN_WIDTHS)
 
@@ -384,13 +412,22 @@ def main():
         row = ingresos_start + idx
         format_cell_range(ws, f"A{row}:C{row}", EXCLUIDA_FORMAT)
 
-    # Columna Categoría (A) de ambos bloques de resumen: mismo wrap que Concepto
-    format_cell_range(ws, f"A{resumen_start}:A{ingresos_end}", CATEGORIA_WRAP_FORMAT)
+    # Bloque Saldo del mes: título fusionado + fila SALDO verde (a favor) o roja (negativo)
+    ws.merge_cells(f"A{saldo_start}:C{saldo_start}")
+    format_cell_range(ws, f"A{saldo_start}:C{saldo_start}", SALDO_TITLE_FORMAT)
+    format_cell_range(
+        ws, f"A{saldo_end}:C{saldo_end}",
+        SALDO_POSITIVO_FORMAT if saldo_mes >= 0 else SALDO_NEGATIVO_FORMAT,
+    )
+
+    # Columna Categoría (A) de los bloques de resumen: mismo wrap que Concepto
+    format_cell_range(ws, f"A{resumen_start}:A{saldo_end}", CATEGORIA_WRAP_FORMAT)
 
     # Bordes negros en todas las celdas con contenido (solo eso, no en filas/columnas vacías)
     format_cell_range(ws, f"A{mov_start}:F{mov_end}", BORDER_FORMAT)
     format_cell_range(ws, f"A{resumen_start}:C{resumen_end}", BORDER_FORMAT)
     format_cell_range(ws, f"A{ingresos_start}:C{ingresos_end}", BORDER_FORMAT)
+    format_cell_range(ws, f"A{saldo_start}:C{saldo_end}", BORDER_FORMAT)
 
     print(f"Listo: {len(movimientos)} movimientos + resumen -> pestaña '{ws_name}'")
     print(f"https://docs.google.com/spreadsheets/d/{args.sheet_id}")

@@ -98,11 +98,18 @@ Por cada archivo/captura:
        --credentials scripts/service_account.json
    ```
    - El script escribe todo (movimientos agrupados por banco + resumen de
-     Egresos/Ingresos) en **una sola pestaña por mes**, nombrada solo con
-     el mes del primer movimiento (ej. "Agosto", sin año). La crea si no
-     existe, o la **recrea de cero** si ya existe (útil para volver a
-     subir el mismo mes corregido) — esto **no toca ninguna otra pestaña**,
-     así que el histórico de meses anteriores queda intacto.
+     Egresos + resumen de Ingresos + tabla "Saldo del mes" con Ingresos −
+     Egresos, en verde si queda a favor y en rojo si da negativo) en **una
+     sola pestaña por mes**, nombrada solo con el mes del primer movimiento
+     (ej. "Agosto", sin año). La crea si no existe, o la **recrea de cero**
+     en el mismo lugar si ya existe (útil para volver a subir el mismo mes
+     corregido) — esto **no toca ninguna otra pestaña**, así que el
+     histórico de meses anteriores queda intacto.
+   - Si Google responde `429 Quota exceeded ... Write requests per
+     minute`, es el límite de escrituras por minuto: esperar ~1 minuto y
+     volver a correr el mismo comando (el script recrea la pestaña entera,
+     así que no queda nada a medias). Conviene no subir el mismo mes varias
+     veces seguidas.
    - Cada banco aparece agrupado con una fila separadora fusionada y de
      color propio (Santander=rojo, OCA=azul, Prex=violeta, Mercado
      Pago=amarillo; cualquier banco nuevo sin color asignado usa celeste
