@@ -17,3 +17,13 @@ a otros orígenes, cada uno tiene sus propios patrones de texto.
 - `"PROMOCIONES TARJETAS DE DEBITO DESC <comercio>"` (crédito) -> es un
   reintegro/descuento de una compra, no un ingreso real — categorizar
   igual que la compra que descuenta (ver criterio general en SKILL.md).
+- `"COMPRA CON TARJETA DEBITO DLO.PEDIDOSYA ..."` (incluye las líneas
+  "ENVIO") -> "Comida / Delivery".
+- `"COMPRA CON TARJETA DEBITO CORPORACION VIAL"` -> "Auto / Telepeaje".
+- `"CREDITO OPERACION EN BANCA DIGITAL P--/<nombre>"` (crédito) -> si el
+  nombre es el del propio titular, preguntar si es una transferencia propia
+  o un ingreso real; no asumir.
+- `"CR. PAGO SUELDOS ..."` -> "Ingresos / Sueldo".
+- Una transferencia enviada genera **dos** líneas (`"TRANSFERENCIA ENVIADA"`
+  con la comisión y `"DEBITO OPERACION EN BANCA DIGITAL ... TRF"` con el
+  monto): ambas van en la misma categoría/subcategoría.

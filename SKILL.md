@@ -47,6 +47,17 @@ Por cada archivo/captura:
      `banco`. Si en algún momento un origen empieza a repetirse seguido y
      vale la pena automatizarlo, se puede sumar un parser nuevo en
      `scripts/parsers/` siguiendo el mismo patrón que `santander.py`.
+   - **Verificar que cada extracto cubra todo el mes**: mirar la primera y
+     la última fecha de cada archivo (o captura) contra el mes que se está
+     cargando. Si faltan días (ej. un export que solo trae la segunda mitad
+     del mes), avisarle al usuario y pedirle que lo vuelva a exportar antes
+     de seguir — un extracto parcial subestima ingresos/egresos sin que se
+     note.
+   - **Compras pagadas con tarjeta de crédito**: si una billetera o
+     capturas muestran compras "con tarjeta de crédito" cuyo resumen ya se
+     carga como "Tarjeta de crédito" desde otro banco, **no cargarlas**:
+     se contarían dos veces (al comprar y al pagar la tarjeta). Preguntar
+     si hay duda sobre qué tarjeta es.
    - Si el archivo trae muchos movimientos repetidos del mismo tipo (ej.
      "Rendimiento" diario de una cuenta remunerada como Prex), preguntarle
      al usuario si los quiere **unificados en una sola fila** (suma total,
@@ -57,8 +68,9 @@ Por cada archivo/captura:
    de cada fila del CSV con un valor de esa lista, con criterio, basándose
    en el `concepto`:
    - Cada banco tiene sus propios patrones de texto en el concepto — si
-     existe una nota en `references/` para ese banco (ej.
-     `references/patrones_santander.md`), usarla como ayuda. Si no existe,
+     existe una nota en `references/` para ese banco
+     (`patrones_santander.md`, `patrones_otros_origenes.md` para OCA, Prex y
+     Mercado Pago), usarla como ayuda. Si no existe,
      inferir del texto del concepto y, si hace falta, preguntarle al
      usuario.
    - **Transferencias**: distinguir "Propias" (a una cuenta del mismo
@@ -74,6 +86,12 @@ Por cada archivo/captura:
    - **Ingresos reales** (sueldo, transferencias recibidas de otra persona,
      rendimientos de cuentas remuneradas): sí van en categoría "Ingresos",
      con la subcategoría que corresponda.
+   - **Transferencias recibidas desde una cuenta propia** (la contrapartida
+     de una "Transferencia enviada / Propias" de otro banco, típicamente el
+     mismo monto y fecha en ambos extractos): van en "Ingresos / Transferencia
+     recibida propia". Se muestran en el resumen pero no suman al total de
+     Ingresos. Las recibidas de otra persona van en "Transferencia recibida
+     de otros".
    - Si un concepto o nombre de persona es ambiguo (¿a qué categoría
      corresponde una transferencia a "Fulano"? ¿es un reintegro o un
      ingreso real?), **preguntarle al usuario** en vez de asumir — estos
@@ -154,9 +172,12 @@ un script rápido, o escribiendo el CSV directamente si son pocas filas.
 - Los movimientos de tipo `credito` no son necesariamente "ingresos" en
   sentido estricto (pueden ser reintegros/descuentos). No asumir
   automáticamente — ver criterio de categorización arriba.
-- Las transferencias a cuentas propias inflan el gasto total sin ser un
-  gasto real — por eso el resumen de Egresos separa "Propias" de "A otros"
-  y agrega una fila "Total sin transferencias propias".
+- Las transferencias entre cuentas propias no son un gasto ni un ingreso
+  real (es la misma plata contada dos veces) — por eso el resumen las
+  muestra en gris con el aviso "(no cuenta para el total)" y las deja fuera
+  del TOTAL de Egresos y de Ingresos (ver `EXCLUIDAS_DEL_TOTAL` en
+  `write_to_sheets.py`). Cada pestaña cierra con "Saldo del mes" (Ingresos
+  − Egresos).
 - No modificar `categories.json` sin que el usuario lo pida explícitamente
   — es la fuente de verdad del dropdown del Sheet. Sí se puede (y conviene)
   agregar categorías/subcategorías nuevas cuando aparece un tipo de gasto

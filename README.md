@@ -18,7 +18,7 @@ egresos/ingresos.
    terceros.
 3. **Sube** todo a una pestaña de Google Sheets nombrada con el mes
    correspondiente, agrupado por banco (con color propio por banco) y con un
-   resumen de egresos/ingresos — sin tocar el histórico de meses anteriores.
+   resumen de egresos/ingresos y un saldo del mes (ingresos − egresos) — sin tocar el histórico de meses anteriores.
 
 ## Estructura del repo
 
@@ -28,6 +28,7 @@ SETUP.md                    # guía de instalación paso a paso (Python, Google 
 categories.json             # fuente de verdad de categorías/subcategorías (dropdown del Sheet)
 references/
   patrones_santander.md     # patrones de texto típicos de Santander para categorizar
+  patrones_otros_origenes.md  # idem para OCA, Prex y Mercado Pago
 scripts/
   movs_csv.py                # formato/escritura del CSV intermedio de movimientos
   write_to_sheets.py          # sube uno o varios CSV categorizados a Google Sheets
@@ -49,6 +50,12 @@ Antes de usarlo por primera vez en una computadora hace falta instalar
 Python, las dependencias del proyecto, y crear un service account de Google
 Cloud para que Claude pueda escribir en tu Sheet sin pedirte login cada vez.
 Guía completa paso a paso en [SETUP.md](SETUP.md).
+
+## Personalización
+
+`categories.json` trae categorías de ejemplo, algunas muy personales
+(Tatuajes, Fútbol 5, Peluquería, Inversiones): editalo con las tuyas antes de
+usarlo. Los colores por banco están en `BANCO_COLORES` (`write_to_sheets.py`).
 
 ## Privacidad
 
