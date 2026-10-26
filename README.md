@@ -1,6 +1,6 @@
 # Gastos mensuales → Google Sheets
 
-Skill de [Claude Code](https://claude.com/claude-code) + scripts en Python
+Instrucciones para un agente de IA (con acceso a archivos y terminal) + scripts en Python
 para procesar extractos bancarios de distintos bancos/billeteras (CSV, PDF,
 Excel, capturas de pantalla), categorizar los movimientos y subirlos
 organizados a un Google Sheets, con una pestaña por mes y resumen de
@@ -23,7 +23,8 @@ egresos/ingresos.
 ## Estructura del repo
 
 ```
-SKILL.md                    # instrucciones que sigue Claude para el flujo mensual
+AGENTS.md                   # punto de entrada para agentes de IA (apunta a SKILL.md)
+SKILL.md                    # instrucciones que sigue el agente de IA para el flujo mensual
 SETUP.md                    # guía de instalación paso a paso (Python, Google Cloud, etc.)
 categories.json             # fuente de verdad de categorías/subcategorías (dropdown del Sheet)
 references/
@@ -39,7 +40,8 @@ scripts/
 
 ## Uso
 
-Este proyecto está pensado para usarse con Claude Code: le pasás los
+Este proyecto está pensado para usarse con un agente de IA que pueda leer archivos y
+ejecutar comandos (por ejemplo Claude Code, Codex o Gemini CLI): le pasás los
 extractos del mes (CSV/PDF/Excel/captura) como adjuntos en el chat y la
 skill se encarga del resto. El flujo completo está documentado en
 [SKILL.md](SKILL.md).
@@ -48,7 +50,7 @@ skill se encarga del resto. El flujo completo está documentado en
 
 Antes de usarlo por primera vez en una computadora hace falta instalar
 Python, las dependencias del proyecto, y crear un service account de Google
-Cloud para que Claude pueda escribir en tu Sheet sin pedirte login cada vez.
+Cloud para que el agente pueda escribir en tu Sheet sin pedirte login cada vez.
 Guía completa paso a paso en [SETUP.md](SETUP.md).
 
 ## Personalización

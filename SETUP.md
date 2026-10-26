@@ -1,14 +1,15 @@
 # Setup inicial (una sola vez por computadora)
 
-Esta guía es para vos, humano. Si estás usando Claude Code, también podés
+Esta guía es para vos, humano. Si estás usando un agente de IA (Claude Code, Codex, Gemini CLI, etc.), también podés
 simplemente decirle "hacé el setup de esta skill" y que te vaya guiando —
 puede hacer casi todos los pasos por vos, salvo los que requieren que hagas
 click en la web de Google (por seguridad, eso lo tenés que hacer vos a mano).
 
-## 1. Instalar Claude Code (si no lo tenés en esta computadora)
+## 1. Instalar un agente de IA (si no tenés ninguno en esta computadora)
 
-Seguí las instrucciones de https://claude.com/claude-code para instalar el
-CLI. Necesitás una cuenta de Anthropic con acceso a Claude Code.
+Necesitás un agente de IA con acceso a archivos y terminal, por ejemplo
+Claude Code, Codex o Gemini CLI. Seguí las instrucciones de instalación de la
+herramienta que elijas (y su cuenta correspondiente).
 
 ## 2. Conseguir esta carpeta en la computadora nueva
 
@@ -44,7 +45,7 @@ python -m pip install -r scripts/requirements.txt
 
 ## 5. Crear el service account de Google Cloud (una sola vez, se puede reusar en todas tus computadoras)
 
-Esto le da a Claude permiso para escribir en tu Google Sheet sin necesitar
+Esto le da al agente permiso para escribir en tu Google Sheet sin necesitar
 tu contraseña de Google ni hacer login interactivo cada vez.
 
 1. Andá a https://console.cloud.google.com/ y creá un proyecto nuevo (o
@@ -86,7 +87,7 @@ tu contraseña de Google ni hacer login interactivo cada vez.
 
 ## 7. Listo — probar
 
-Con todo lo anterior hecho, ya podés pedirle a Claude Code que procese el
+Con todo lo anterior hecho, ya podés pedirle al agente que procese el
 CSV/PDF/Excel/captura de un mes (ver [SKILL.md](SKILL.md) para el flujo
 normal). Como prueba rápida de que todo está bien conectado, le podés pedir
 que liste las pestañas del Sheet o que suba un movimiento de prueba.
