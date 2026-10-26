@@ -53,9 +53,9 @@ Guía completa paso a paso en [SETUP.md](SETUP.md).
 
 ## Personalización
 
-`categories.json` trae categorías de ejemplo, algunas muy personales
-(Tatuajes, Fútbol 5, Peluquería, Inversiones): editalo con las tuyas antes de
-usarlo. Los colores por banco están en `BANCO_COLORES` (`write_to_sheets.py`).
+`categories.json` define las categorías y subcategorías (son también las
+opciones del dropdown del Sheet): editalo con las tuyas. Los colores por
+banco están en `BANCO_COLORES`, dentro de `scripts/write_to_sheets.py`.
 
 ## Privacidad
 
